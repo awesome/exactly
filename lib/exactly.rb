@@ -1,5 +1,6 @@
+require "savon"
 require "exactly/version"
+require "exactly/client"
 
 module Exactly
-  # Your code goes here...
 end
