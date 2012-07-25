@@ -32,5 +32,27 @@ module Exactly
         }
       end
     end
+
+    def triggered_send(customer_key, attributes)
+      attributes_without_email = attributes.reject{|k,v| k == :email}
+      client.request "CreateRequest", :xmlns => "http://exacttarget.com/wsdl/partnerAPI" do
+        http.headers['SOAPAction'] = 'Create'
+        soap.body = {
+          "Objects" => {
+            "TriggeredSendDefinition" => {
+              "CustomerKey" => customer_key
+            },
+            "Subscribers" => {
+              "EmailAddress"  => attributes[:email],
+              "SubscriberKey" => attributes[:email],
+              "Attributes"    => attributes_without_email.map do
+                |k, v| { "Name" => k, "Value" => v }
+              end
+            }
+          },
+          :attributes! => { "Objects" => { "xsi:type" => "TriggeredSend" }}
+        }
+      end
+    end
   end
 end
