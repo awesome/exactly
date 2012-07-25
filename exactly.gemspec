@@ -4,9 +4,9 @@ require File.expand_path('../lib/exactly/version', __FILE__)
 Gem::Specification.new do |gem|
   gem.authors       = ["Jacob Atzen"]
   gem.email         = ["jacob@incremental.dk"]
-  gem.description   = %q{TODO: Write a gem description}
-  gem.summary       = %q{TODO: Write a gem summary}
-  gem.homepage      = ""
+  gem.description   = %q{ExactTarget SOAP API client}
+  gem.summary       = %q{Making it easier to interact with ExactTargets SOAP API}
+  gem.homepage      = "http://github.com/lokalebasen/exactly"
 
   gem.files         = `git ls-files`.split($\)
   gem.executables   = gem.files.grep(%r{^bin/}).map{ |f| File.basename(f) }
