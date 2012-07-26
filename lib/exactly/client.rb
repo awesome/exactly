@@ -33,6 +33,24 @@ module Exactly
       end
     end
 
+    def delete_from_data_extension(customer_key, properties)
+      client.request "DeleteRequest", :xmlns => "http://exacttarget.com/wsdl/partnerAPI" do
+        http.headers['SOAPAction'] = 'Delete'
+        soap.body = {
+          "DeleteOptions" => {},
+          "Objects" => {
+            "CustomerKey" => customer_key,
+            "Keys" => {
+              "Key" => properties.map do
+                |k, v| { "Name" => k, "Value" => v }
+              end
+            }
+          },
+          :attributes! => { "Objects" => { "xsi:type" => "DataExtensionObject" }}
+        }
+      end
+    end
+
     def triggered_send(customer_key, attributes)
       attributes_without_email = attributes.reject{|k,v| k == :email}
       client.request "CreateRequest", :xmlns => "http://exacttarget.com/wsdl/partnerAPI" do
