@@ -63,6 +63,21 @@ module Exactly
       end
     end
 
+    def clear_data_extension(customer_key)
+      client.request "PerformRequestMsg", :xmlns => "http://exacttarget.com/wsdl/partnerAPI" do
+        http.headers['SOAPAction'] = 'Perform'
+        soap.body = {
+          "Action" => "ClearData",
+          "Definitions" => {
+            "Definition" => {
+              "CustomerKey" => customer_key
+            },
+            :attributes! => { "Definition" => { "xsi:type" => "DataExtension" }}
+          }
+        }
+      end
+    end
+
     def triggered_send(customer_key, attributes)
       attributes_without_email = attributes.reject{|k,v| k == :email}
       response = client.request "CreateRequest", :xmlns => "http://exacttarget.com/wsdl/partnerAPI" do
