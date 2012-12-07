@@ -1,4 +1,16 @@
 module Exactly
+  class TriggeredSendFailed < StandardError
+    attr_reader :response
+    def initialize(response)
+      @response = response
+      super(message)
+    end
+
+    def message
+      @response.to_hash[:create_response][:results][:status_message]
+    end
+  end
+
   class Client
     def initialize(username, password)
       client.wsse.credentials username, password
@@ -53,7 +65,7 @@ module Exactly
 
     def triggered_send(customer_key, attributes)
       attributes_without_email = attributes.reject{|k,v| k == :email}
-      client.request "CreateRequest", :xmlns => "http://exacttarget.com/wsdl/partnerAPI" do
+      response = client.request "CreateRequest", :xmlns => "http://exacttarget.com/wsdl/partnerAPI" do
         http.headers['SOAPAction'] = 'Create'
         soap.body = {
           "Objects" => {
@@ -70,6 +82,9 @@ module Exactly
           },
           :attributes! => { "Objects" => { "xsi:type" => "TriggeredSend" }}
         }
+      end
+      if response.to_hash[:create_response][:overall_status] != 'OK'
+        raise Exactly::TriggeredSendFailed.new(response)
       end
     end
   end
