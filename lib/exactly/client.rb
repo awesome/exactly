@@ -1,11 +1,19 @@
 module Exactly
-  class TriggeredSendFailed < StandardError
+  class ExactlyError < StandardError
     attr_reader :response
     def initialize(response)
       @response = response
       super(message)
     end
+  end
 
+  class UpsertDataExtensionFailed < ExactlyError
+    def message
+      @response.to_hash[:update_response][:results][:status_message]
+    end
+  end
+
+  class TriggeredSendFailed < ExactlyError
     def message
       @response.to_hash[:create_response][:results][:status_message]
     end
@@ -21,7 +29,7 @@ module Exactly
     end
 
     def upsert_data_extension(customer_key, properties)
-      client.request "UpdateRequest", :xmlns => "http://exacttarget.com/wsdl/partnerAPI" do
+      response = client.request "UpdateRequest", :xmlns => "http://exacttarget.com/wsdl/partnerAPI" do
         http.headers['SOAPAction'] = 'Update'
         soap.body = {
           "Options" => {
@@ -42,6 +50,9 @@ module Exactly
           },
           :attributes! => { "Objects" => { "xsi:type" => "DataExtensionObject" }}
         }
+      end
+      if response.to_hash[:update_response][:overall_status] != 'OK'
+        raise Exactly::UpsertDataExtensionFailed.new(response)
       end
     end
 
