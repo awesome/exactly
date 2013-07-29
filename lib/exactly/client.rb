@@ -13,11 +13,14 @@ module Exactly
     end
   end
 
-  class TriggeredSendFailed < ExactlyError
+  class CreateError < ExactlyError
     def message
       @response.to_hash[:create_response][:results][:status_message]
     end
   end
+
+  class TriggeredSendFailed < CreateError; end
+  class UpsertSubscriberFailed < CreateError; end
 
   class Client
     def initialize(username, password)
@@ -26,6 +29,35 @@ module Exactly
 
     def client
       @client ||= ::Savon::Client.new("https://webservice.s6.exacttarget.com/etframework.wsdl")
+    end
+
+    def upsert_subscriber(customer_key, email, lists = [])
+      response = client.request "CreateRequest", :xmlns => "http://exacttarget.com/wsdl/partnerAPI" do
+        http.headers['SOAPAction'] = 'Create'
+        body = {
+          "Options" => {
+            "SaveOptions" => [
+              "SaveOption" => {
+                "PropertyName" => "*",
+                "SaveAction" => "UpdateAdd"
+              }
+            ]
+          },
+          "Objects" => {
+            "CustomerKey" => customer_key,
+            "EmailAddress" => email,
+            "Lists" => Array(lists).map{|list_id|
+              { "ID" => list_id }
+            }
+          },
+          :attributes! => { "Objects" => { "xsi:type" => "Subscriber" }}
+        }
+
+        soap.body = body
+      end
+      if response.to_hash[:create_response][:overall_status] != 'OK'
+        raise Exactly::UpsertSubscriberFailed.new(response)
+      end
     end
 
     def upsert_data_extension(customer_key, properties)
