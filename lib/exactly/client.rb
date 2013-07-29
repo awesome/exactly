@@ -85,7 +85,7 @@ module Exactly
             },
             "Subscribers" => {
               "EmailAddress"  => attributes[:email],
-              "SubscriberKey" => attributes[:email],
+              "SubscriberKey" => attributes[:subscriber_key],
               "Attributes"    => attributes_without_email.map do
                 |k, v| { "Name" => k, "Value" => v }
               end
