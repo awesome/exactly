@@ -47,7 +47,7 @@ module Exactly
             "CustomerKey" => customer_key,
             "EmailAddress" => email,
             "Lists" => Array(lists).map{|list_id|
-              { "ID" => list_id }
+              { "ID" => list_id, "Status" => "Active" }
             }
           },
           :attributes! => { "Objects" => { "xsi:type" => "Subscriber" }}
