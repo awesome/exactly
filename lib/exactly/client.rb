@@ -7,6 +7,8 @@ module Exactly
     end
   end
 
+  class SoapFaultError < RuntimeError; end
+
   class UpsertDataExtensionFailed < ExactlyError
     def message
       @response.to_hash[:update_response][:results][:status_message]
@@ -58,6 +60,8 @@ module Exactly
       if response.to_hash[:create_response][:overall_status] != 'OK'
         raise Exactly::UpsertSubscriberFailed.new(response)
       end
+    rescue Savon::SOAP::Fault => ex
+      raise Exactly::SoapFaultError, "Error: Could not upsert subscriber #{customer_key}/#{email} to ExactTarget: #{ex.message}"
     end
 
     def upsert_data_extension(customer_key, properties)
