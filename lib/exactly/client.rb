@@ -1,5 +1,5 @@
 module Exactly
-  class ExactlyError < StandardError
+  class ExactlyError < RuntimeError
     attr_reader :response
     def initialize(response)
       @response = response
