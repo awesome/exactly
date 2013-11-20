@@ -64,6 +64,37 @@ module Exactly
       raise Exactly::SoapFaultError, "Error: Could not upsert subscriber #{customer_key}/#{email} to ExactTarget: #{ex.message}"
     end
 
+    def unsubscribe_subscriber(customer_key, email, lists = [])
+      response = client.request "CreateRequest", :xmlns => "http://exacttarget.com/wsdl/partnerAPI" do
+        http.headers['SOAPAction'] = 'Create'
+        body = {
+          "Options" => {
+            "SaveOptions" => [
+              "SaveOption" => {
+                "PropertyName" => "*",
+                "SaveAction" => "UpdateAdd"
+              }
+            ]
+          },
+          "Objects" => {
+            "CustomerKey" => customer_key,
+            "EmailAddress" => email,
+            "Lists" => Array(lists).map{|list_id|
+              { "ID" => list_id, "Status" => "Unsubscribed" }
+            }
+          },
+          :attributes! => { "Objects" => { "xsi:type" => "Subscriber" }}
+        }
+
+        soap.body = body
+      end
+      if response.to_hash[:create_response][:overall_status] != 'OK'
+        raise Exactly::UpsertSubscriberFailed.new(response)
+      end
+    rescue Savon::SOAP::Fault => ex
+      raise Exactly::SoapFaultError, "Error: Could not upsert subscriber #{customer_key}/#{email} to ExactTarget: #{ex.message}"
+    end
+
     def upsert_data_extension(customer_key, properties)
       response = client.request "UpdateRequest", :xmlns => "http://exacttarget.com/wsdl/partnerAPI" do
         http.headers['SOAPAction'] = 'Update'
