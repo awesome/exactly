@@ -26,17 +26,22 @@ module Exactly
 
   class Client
     def initialize(username, password)
-      client.wsse.credentials username, password
+      @username = username
+      @password = password
     end
 
     def client
-      @client ||= ::Savon::Client.new("https://webservice.s6.exacttarget.com/etframework.wsdl")
+      @client ||= ::Savon.client(:wsse_auth => [@username,@password]) do
+        wsdl "https://webservice.s6.exacttarget.com/etframework.wsdl"
+        namespace "http://exacttarget.com/wsdl/partnerAPI"
+      end
     end
 
     def upsert_subscriber(customer_key, email, lists = [])
-      response = client.request "CreateRequest", :xmlns => "http://exacttarget.com/wsdl/partnerAPI" do
-        http.headers['SOAPAction'] = 'Create'
-        body = {
+      response = client.call(
+        :create,
+        :soap_action => "Create",
+        :message => {
           "Options" => {
             "SaveOptions" => [
               "SaveOption" => {
@@ -52,22 +57,20 @@ module Exactly
               { "ID" => list_id, "Status" => "Active" }
             }
           },
-          :attributes! => { "Objects" => { "xsi:type" => "Subscriber" }}
-        }
-
-        soap.body = body
-      end
+          :attributes! => {"Objects" =>{ "xsi:type" => "tns:Subscriber" }}
+        })
       if response.to_hash[:create_response][:overall_status] != 'OK'
         raise Exactly::UpsertSubscriberFailed.new(response)
       end
-    rescue Savon::SOAP::Fault => ex
+    rescue Savon::SOAPFault => ex
       raise Exactly::SoapFaultError, "Error: Could not upsert subscriber #{customer_key}/#{email} to ExactTarget: #{ex.message}"
     end
 
     def unsubscribe_subscriber(customer_key, email, lists = [])
-      response = client.request "CreateRequest", :xmlns => "http://exacttarget.com/wsdl/partnerAPI" do
-        http.headers['SOAPAction'] = 'Create'
-        body = {
+      response = client.call(
+        :create,
+        :soap_action => "Create",
+        :message => {
           "Options" => {
             "SaveOptions" => [
               "SaveOption" => {
@@ -83,22 +86,20 @@ module Exactly
               { "ID" => list_id, "Status" => "Unsubscribed" }
             }
           },
-          :attributes! => { "Objects" => { "xsi:type" => "Subscriber" }}
-        }
-
-        soap.body = body
-      end
+          :attributes! => {"Objects" =>{ "xsi:type" => "tns:Subscriber" }}
+        })
       if response.to_hash[:create_response][:overall_status] != 'OK'
         raise Exactly::UpsertSubscriberFailed.new(response)
       end
-    rescue Savon::SOAP::Fault => ex
+    rescue Savon::SOAPFault => ex
       raise Exactly::SoapFaultError, "Error: Could not upsert subscriber #{customer_key}/#{email} to ExactTarget: #{ex.message}"
     end
 
     def upsert_data_extension(customer_key, properties)
-      response = client.request "UpdateRequest", :xmlns => "http://exacttarget.com/wsdl/partnerAPI" do
-        http.headers['SOAPAction'] = 'Update'
-        soap.body = {
+      response = client.call(
+        :update,
+        :soap_action => "Update",
+        :message => {
           "Options" => {
             "SaveOptions" => [
               "SaveOption" => {
@@ -110,42 +111,45 @@ module Exactly
           "Objects" => {
             "CustomerKey" => customer_key,
             "Properties" => {
-              "Property" => properties.map do
-                |k, v| { "Name" => k, "Value" => v }
+              "Property" => properties.map do |k, v|
+                { "Name" => k, "Value" => v }
               end
             }
           },
-          :attributes! => { "Objects" => { "xsi:type" => "DataExtensionObject" }}
-        }
-      end
+          :attributes! => { "Objects" => { "xsi:type" => "tns:DataExtensionObject" }}
+        })
       if response.to_hash[:update_response][:overall_status] != 'OK'
         raise Exactly::UpsertDataExtensionFailed.new(response)
       end
     end
 
     def delete_from_data_extension(customer_key, properties)
-      client.request "DeleteRequest", :xmlns => "http://exacttarget.com/wsdl/partnerAPI" do
-        http.headers['SOAPAction'] = 'Delete'
-        soap.body = {
+      response = client.call(
+        :delete,
+        :soap_action => "Delete",
+        :message => {
           "DeleteOptions" => {},
           "Objects" => {
             "CustomerKey" => customer_key,
             "Keys" => {
-              "Key" => properties.map do
-                |k, v| { "Name" => k, "Value" => v }
+              "Key" => properties.map do |k, v|
+                { "Name" => k, "Value" => v }
               end
             }
           },
-          :attributes! => { "Objects" => { "xsi:type" => "DataExtensionObject" }}
-        }
+          :attributes! => { "Objects" => { "xsi:type" => "tns:DataExtensionObject" }}
+        })
+      if response.to_hash[:delete_response][:overall_status] != 'OK'
+        raise Exactly::TriggeredSendFailed.new(response)
       end
     end
 
     def triggered_send(customer_key, attributes)
       attributes_without_email = attributes.reject{|k,v| k == :email}
-      response = client.request "CreateRequest", :xmlns => "http://exacttarget.com/wsdl/partnerAPI" do
-        http.headers['SOAPAction'] = 'Create'
-        soap.body = {
+      response = client.call(
+        :create,
+        :soap_action => "Create",
+        :message => {
           "Objects" => {
             "TriggeredSendDefinition" => {
               "CustomerKey" => customer_key
@@ -158,9 +162,8 @@ module Exactly
               end
             }
           },
-          :attributes! => { "Objects" => { "xsi:type" => "TriggeredSend" }}
-        }
-      end
+          :attributes! => { "Objects" => { "xsi:type" => "tns:TriggeredSend" }}
+        })
       if response.to_hash[:create_response][:overall_status] != 'OK'
         raise Exactly::TriggeredSendFailed.new(response)
       end
