@@ -14,6 +14,6 @@ Gem::Specification.new do |gem|
   gem.name          = "exactly"
   gem.require_paths = ["lib"]
   gem.version       = Exactly::VERSION
-  gem.add_dependency "savon",  "~> 2.2"
+  gem.add_dependency "savon",  "~> 2.2.0"
   gem.add_development_dependency "rake"
 end
